@@ -9,10 +9,10 @@ import satellite
 import MEKFmaincode
 import testfunction
 import sensor
+import qnv
 import matplotlib.pyplot as plt
 control_step=1
 model_step=1
-t0=0
 v_state0 = np.hstack((v_q0_BO,v_w0_BOB))
 Advitiy = satellite.Satellite(v_state0,t0) 
 Advitiy.setMag_i(np.array([1,1,1]))
@@ -27,7 +27,7 @@ b_e=np.array([0,0,0])
 
 #Make satellite object
 init=1
-end=5000
+end=500
 k=0
 t0=0
 l=np.linspace(0,end,end)
@@ -39,17 +39,19 @@ velocity=np.zeros((end,3))
 w_est=velocity.copy()
 w_gyro=velocity.copy()
 w_true=velocity.copy()
-q_true=np.array([0,0,0,1])
 q=np.zeros((end,4))
 RMSE=np.zeros((end,3))
 p=np.zeros((end,6,6))
 x=np.zeros((end,6))
 xmod=np.zeros((end))
+
+q_true_bo = np.array([0,0,0,1])
+
 for i in range(end):
-####w_true_bob = np.array([0.1,0.1,0.1])
-####q_true_bo = yet to be defined 
-####Advitiy.setW_BO_b(w_true_bob)
-####Advitiy.setQ_BO(q_true_bo)
+    w_true_bob = np.array([0.2,0.2,0.2])
+    q_true_bo = testfunction.propogate_quaternion(w_true_bob,q_true_bo)
+    Advitiy.setW_BO_b(w_true_bob)
+    Advitiy.setQ_BO(q_true_bo)
     Advitiy.setGyroVarBias(np.array([0.001,0.001,0.001]))
     w_m_k=sensor.gyroscope(Advitiy)
     #w_t_k=satellite.getW_BO_b(Advitiy)
@@ -65,11 +67,10 @@ for i in range(end):
     #print(b_e)
     q[i,:], p[i :], f=MEKFmaincode.estimator(Advitiy)
     x[i, :]=f
-    print('a',x[i,2])
     RMSE[i,:]=np.sqrt(((b-f[3:6])**2)/end)
     q_kk=q[i,:]
     delta_x=[0,0,0,f[3:6]]
-    #print(i)
+    print(i)
     #print(f[3:6])
     P_k=p[i,:]
     #w_true[i,:]=w_t_bib
@@ -79,18 +80,9 @@ for i in range(end):
     #print(w_est[:,0]-w_gyro[:,0]-b[0])
     xmod[i]=np.linalg.norm(f) 
 
-plt.plot(l,velocity)
-
 #plt.plot(l,p[:,0,0], 'r')
-#plt.xlabel('number of iterations')  
-#plt.ylabel('z component of angular rates')  
-#plt.plot(l,w_est[:,2], 'b')
-#plt.plot(l,w_gyro[:,2], 'r')
-    
-#plt.plot(l,q[:,0],'b')
-#plt.plot(l,q[:,1],'r')
-#plt.plot(l,q[:,2],'g')
-#plt.plot(l,q[:,3],'y')
-#plt.plot(l,x[:,3])
-#plt.plot(l,x[:,4])
-#plt.plot(l,x[:,5])
+plt.xlabel('number of iterations')  
+plt.ylabel('z component of angular rates')  
+plt.plot(l,w_est[:,2], 'b')
+plt.plot(l,w_gyro[:,2], 'r')
+#plt.plot(l,w_true_bob[:,2], 'r')
