@@ -33,7 +33,7 @@ b_e=np.array([0,0,0]) #estimated bias
 #I4=np.matrix('1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,1') #defining 4x4 identity matrix
 #I6=np.matrix('1,0,0,0,0,0;0,1,0,0,0,0;0,0,1,0,0,0;0,0,0,1,0,0;0,0,0,0,1,0;0,0,0,0,0,1')
 #P_k=np.matrix('1,0,0,0,0,0;0,1,0,0,0,0;0,0,1,0,0,0;0,0,0,1,0,0;0,0,0,0,1,0;0,0,0,0,0,1') #initial state covariance matrix
-q_kk=np.array([0,0,0,1])
+q_kk=np.array([1/2**0.5,0,0,1/2**0.5])#it is supposed to come from QUEST
 I3=np.array([[1,0,0],[0,1,0],[0,0,1]]) #defining 3x3 identity matrix 
 I4=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) #defining 4x4 identity matrix
 I6=np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]])
@@ -66,19 +66,24 @@ b_e=np.array([0,0,0])
 
 def estimator(sat):
     sat.setGyroVarBias(np.array([0,0,0]))
+    v_est_state = sat.get_est_State()
+    #print("v_est_state",v_est_state)
+    q_kk = v_est_state[0:4]
     v_mag_o=sat.getMag_o()
     v_mag_b_m=sat.getMag_b_m_c()
+    #print("2",v_mag_b_m)
     w_m_k=sensor.gyroscope(sat)
+    #print("2",w_m_k)
     w_oio=-v_w_IO_o
     delta_b=testfunction.delta_b_calc(b,b_e)
-    
     w_bob=testfunction.w_bob_calc(w_m_k,q_kk,w_oio,b_e)
     #print(w_bob)
     phi=testfunction.phi_calc(w_bob)
     #print(phi)
-    delta_x=testfunction.delta_x_calc(q_kk,delta_b)
+    delta_x=testfunction.delta_x_calc(delta_q_kk,delta_b)
+    print("delta_x",delta_x)
     #print(delta_x)
-    q_k1k=testfunction.propogate_quaternion(w_bob,q_kk)
+    q_k1k=testfunction.propogate_quaternion(w_bob,q_kk) #problem hai idhar
     #print(q_k1k)
     x_k1k=testfunction.propogate_state_vector(phi,delta_x)
     #print(x_k1k)
