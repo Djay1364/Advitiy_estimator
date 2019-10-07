@@ -118,14 +118,47 @@ def magnetometer(sat):
     v_q_BO = sat.getQ_BO() 
     v_B_o = sat.getMag_o() #obtain magnetic field in orbit frame
     v_B_b = qnv.quatRotate(v_q_BO,v_B_o) #obtain magnetic field in body frame
-    v_B_m = v_B_b + mvg(MAG_BIAS,MAG_COV) #add errors
+    v_n_m = mvg(MAG_BIAS,MAG_COV) #measurement noise
+    v_B_m = v_B_b +  v_n_m #add errors
 
-    return v_B_m
+    return v_B_m, v_n_m
     
 def gyroscope(sat):
 
     v_w_BIB = sat.getW_BI_b()
-    v_bias_var = sat.getGyroVarBias()
-    v_w_BIB_m = v_w_BIB + v_bias_var + mvg(GYRO_F_BIAS,GYRO_F_COV)
+    #print("v_w_BIB1",v_w_BIB)
+    v_bias_var_k = sat.getGyroVarBias()
+    v_bias_var_k1 = v_bias_var_k + sigma_u*(h**0.5)*mvg(GYRO_F_BIAS,np.eye(3))
+    
+    v_w_BIB_m = v_w_BIB + 0.5*(v_bias_var_k1+v_bias_var_k) + mvg(GYRO_F_BIAS,np.eye(3))*(sigma_v**2/h+(sigma_u**2)*h/12)**0.5#mvg(GYRO_F_BIAS,GYRO_F_COV) ##v_bias_var needs to be corrected 
+    sat.setGyroVarBias(v_bias_var_k1)
 
     return v_w_BIB_m
+
+def gyroscope_bob(sat):
+    
+    v_w_BIB = sat.getW_BI_b()
+    #print("v_w_BIB",v_w_BIB)
+    v_bias_var = sat.getGyroVarBias()
+    v_est_state = sat.get_glob_est_State()
+    v_est_q_BO = v_est_state[0:4]
+    R=qnv.quat2rotm(v_est_q_BO)
+    w_oio = -v_w_IO_o
+    v_w_BOB=v_w_BIB-np.dot(R,w_oio)+v_bias_var
+    
+    return v_w_BOB
+'''
+def gyroVarBias(sat):
+    
+    v_bias_var = sat.getGyroVarBias()
+    sigma_u = 0.001
+    o = np.array([0,0,0])
+    I = np.eye(3)
+    N_u = np.random.multivariate_normal(o,I,3)
+    v_bias_var = v_bias_var + sigma_u*(dt**0.5)*N_u
+    sat.setGyroVarBias()
+ '''   
+    
+    
+    
+    

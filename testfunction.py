@@ -30,6 +30,7 @@ R=I3
 #A=I3-qnv.skew(w_bob)
 B=-I3
 t=0.1
+h=0.01
 sigma_r_sq=1e-9
 sigma_w_sq=1e-9
 #C=np.matrix([[A[0,0],A[0,1],A[0,2],B[0,0],B[0,1],B[0,2]],[A[1,0],A[1,1],A[1,2],B[1,0],B[1,1],B[1,2]],[A[2,0],A[2,1],A[2,2],B[2,0],B[2,1],B[2,2]],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]])
@@ -39,16 +40,18 @@ def delta_b_calc(b,b_e):
     delta_b=b-b_e
     return delta_b
 
-def w_bob_calc(w_m_k,q_kk,w_oio,b_e):
-    R=qnv.quat2rotm(q_kk)
+def w_bob_calc(w_m_k,q_true_bo,w_oio,b_e):
+    R=qnv.quat2rotm(q_true_bo)
     w_bib=w_m_k-b_e #estimated omega
+    #w_bib=sat.getW_BI_b()
+    #v_bias_var = sat.getGyroVarBias()
     w_bob=w_bib-np.dot(R,w_oio)
     return w_bob
-  
+
 def phi_calc(w_bob):
     A=-qnv.skew(w_bob)
     C=np.matrix([[A[0,0],A[0,1],A[0,2],-1,0,0],[A[1,0],A[1,1],A[1,2],0,-1,0],[A[2,0],A[2,1],A[2,2],0,0,-1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]])
-    phi=scipy.linalg.expm(C*t)  
+    phi=scipy.linalg.expm(C*h)  
     return phi
 
 def delta_x_calc(q_kk,delta_b):
@@ -58,26 +61,19 @@ def delta_x_calc(q_kk,delta_b):
                               
 def propogate_quaternion(w_bob,q_kk):
     #state at t = t0	
-	
 	#rk-4 routine (updating satellite class state with obtained state at every step of rk4 routine)
 	#first step of rk4 routine
-    dq = t*qnv.quatDerBO(q_kk,w_bob)
-	
+    dq = h*qnv.quatDerBO(q_kk,w_bob)
     q_k1k = q_kk + dq
-    #q_k1k = qnv.quatMultiplyNorm(dq,q_kk)
-    print(q_k1k)
-    
     return q_k1k
 
-def propogate_state_vector(phi,delta_x):
-    R=np.dot(phi,delta_x)
+def propogate_state_vector(phi,x_kk): 
+    
+    R=np.dot(phi,x_kk)+h*np.dot()
     return R
 
 def propogate_covariance(phi,P_k):
     return np.dot(phi,np.dot(P_k,(phi.T)))+Q_k
-
-
-
 
 #v_mag_b_m=sat.getMag_b_m_c()  
 #v_mag_b_m=np.matrix('1,1,1').T
@@ -87,13 +83,16 @@ def propogate_covariance(phi,P_k):
 
 
 def calc_v_mag_b_e(v_mag_b_m,v_mag_o,q_k1k):
+    v_mag_o = v_mag_o/(np.linalg.norm(v_mag_o))
     quatk1km=qnv.quat2rotm(q_k1k)
-    
     v_mag_b_e=np.dot(quatk1km,v_mag_o)
+    v_mag_b_e=v_mag_b_e/(np.linalg.norm(v_mag_b_e))
     return v_mag_b_e
 
 def calc_y(v_mag_b_m,v_mag_b_e):
     #print(v_mag_b_e)# v_mag_b_m)
+    #print("v_mag_b_m",v_mag_b_m)
+    #print("v_mag_b_e",v_mag_b_e)
     y=v_mag_b_m-v_mag_b_e
     return y
 
@@ -107,7 +106,7 @@ def calc_K(P_k1k,M_m,R):
     return K
     
 def update_quaternion(delta_x_k1k,q_kk):
-    delta_q=np.hstack((delta_x_k1k[0:3]/2,np.array([0])))
+    delta_q=np.hstack((delta_x_k1k[0:3]/2,np.array([1])))
     #print("delta_x_kk=")
     #print(delta_x_k1k)
     #print("q_kk=")

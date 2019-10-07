@@ -34,11 +34,11 @@ b_e=np.array([0,0,0]) #estimated bias
 #I6=np.matrix('1,0,0,0,0,0;0,1,0,0,0,0;0,0,1,0,0,0;0,0,0,1,0,0;0,0,0,0,1,0;0,0,0,0,0,1')
 #P_k=np.matrix('1,0,0,0,0,0;0,1,0,0,0,0;0,0,1,0,0,0;0,0,0,1,0,0;0,0,0,0,1,0;0,0,0,0,0,1') #initial state covariance matrix
 q_kk=np.array([1/2**0.5,0,0,1/2**0.5])#it is supposed to come from QUEST
-I3=np.array([[1,0,0],[0,1,0],[0,0,1]]) #defining 3x3 identity matrix 
+I3=np.array([[100,0,0],[0,100,0],[0,0,100]]) #defining 3x3 identity matrix 
 I4=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) #defining 4x4 identity matrix
 I6=np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]])
 P_k=np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]]) #initial state covariance matrix
-delta_q_kk=np.array([0.1,0.1,0.1,0.985])
+delta_q_kk=np.array([0,0,0,1])
 
 #w_m_k=np.matrix('1,1,1').T
 
@@ -60,54 +60,57 @@ t=1
 #v_mag_o=Advitiy.getMag_o()
 #v_mag_o=sat.getMag_o()
 #v_mag_b_m=Advitiy.getMag_b_m_c()
-b=np.array([0.0001,0.0001,0.0001])
-b_e=np.array([0,0,0])
-
-
+#b=np.array([0.0001,0.0001,0.0001])
+#b_e=np.array([0,0,0])
+ 
 def estimator(sat):
-    sat.setGyroVarBias(np.array([0,0,0]))
-    v_est_state = sat.get_est_State()
-    #print("v_est_state",v_est_state)
-    q_kk = v_est_state[0:4]
-    v_mag_o=sat.getMag_o()
-    v_mag_b_m=sat.getMag_b_m_c()
-    #print("2",v_mag_b_m)
-    w_m_k=sensor.gyroscope(sat)
-    #print("2",w_m_k)
-    w_oio=-v_w_IO_o
+
+    v_glob_est_state = sat.get_glob_est_State() #### comes from the previous estimate
+    q_kk = v_glob_est_state[0:4] 
+    P_kk = sat.getErrCovariance() #### comes from the previous estimate
+    b=sat.getGyroVarBias()#### gyro rate bias
+    b_e=sat.getGyroEstBias()#### estimated gyro rate bias
     delta_b=testfunction.delta_b_calc(b,b_e)
-    w_bob=testfunction.w_bob_calc(w_m_k,q_kk,w_oio,b_e)
-    #print(w_bob)
-    phi=testfunction.phi_calc(w_bob)
-    #print(phi)
-    delta_x=testfunction.delta_x_calc(delta_q_kk,delta_b)
-    print("delta_x",delta_x)
-    #print(delta_x)
-    q_k1k=testfunction.propogate_quaternion(w_bob,q_kk) #problem hai idhar
-    #print(q_k1k)
-    x_k1k=testfunction.propogate_state_vector(phi,delta_x)
-    #print(x_k1k)
-    P_k1k=testfunction.propogate_covariance(phi,P_k)
-    #print(P_k1k)
-    v_mag_b_e=testfunction.calc_v_mag_b_e(v_mag_b_m,v_mag_o,q_k1k)
-    #print(v_mag_b_e)
+    
+    v_mag_o=sat.getMag_o() #### magnetic field in orbit frame
+    v_mag_b_m, v_n_m=sensor.magnetometer(sat) #sat.getMag_b_m_c() 
+    v_mag_b_m=v_mag_b_m/(np.linalg.norm(v_mag_b_m))
+    w_m_k=sensor.gyroscope(sat) #### angular velocity of body w.r.t. inertial expressed in Body
+    w_oio=-v_w_IO_o #### angular velocity of orbit w.r.t. inertial expressed in body
+    
+    x_kk=testfunction.delta_x_calc(delta_q_kk,delta_b)#### local state
+    #q_true_bo = sat.getQ_BO() #### true quaternion
+    w_bob = testfunction.w_bob_calc(w_m_k,q_kk,w_oio,b_e)
+    
+    phi=testfunction.phi_calc(w_bob) #### state transition matrix of local estimates
+   
+    q_k1k=testfunction.propogate_quaternion(w_bob,q_kk) #### quaternion propagation using quaternion kinematics
+    
+    x_k1k=np.dot(phi,x_kk)#testfunction.propogate_state_vector(phi,x_kk) #### local state propagation 
+    
+    P_k1k=testfunction.propogate_covariance(phi,P_kk) #### error covariance propagation
+
+    v_mag_b_e=testfunction.calc_v_mag_b_e(v_mag_b_m,v_mag_o,q_k1k) ####
+    
     y=testfunction.calc_y(v_mag_b_m,v_mag_b_e)
-    #print(y)
-    M_m=testfunction.calc_M_m(v_mag_b_e,q_k1k)
-    #print(M_m)
-    K=testfunction.calc_K(P_k1k,M_m,R)
-    #print("K=")
-    #print(K)   
+    
+    M_m=testfunction.calc_M_m(v_mag_b_e,q_k1k) #### No need to pass q_k1k
+    
+    K=testfunction.calc_K(P_k1k,M_m,R)#np.matrix([[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1]]) 
+    
     x_k1k1=testfunction.update_state_vector(K,y,x_k1k,M_m)
-    #print("x=" )
-    #print(x_k1k1)
+    
     P_k1k1=testfunction.update_covariance(I6,K,M_m,P_k1k,R)
-    #print("p=")
-    #print(P_k1k1)
+    
     q_k1k1=testfunction.update_quaternion(x_k1k,q_k1k)
-    #print("qk1k1")
-    #x_k1k1 = testfunction.reset_error_quaternion(x_k1k1)
-    #print(q_k1k1)
+    
+    w_est=w_m_k+x_k1k1[3:6]-b
+    
+    sat.set_loc_est_State(x_k1k1)
+    sat.setErrCovariance(P_k1k1)
+    sat.set_glob_est_State(np.hstack((q_k1k1,w_est)))
+    sat.setGyroEstBias(b-x_k1k1[3:6])
+    print(x_k1k1[3:6])
+    
     return q_k1k1, P_k1k1, x_k1k1
     
-#print("result")

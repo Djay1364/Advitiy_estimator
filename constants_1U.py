@@ -101,8 +101,10 @@ MAG_COV = 1e-9*np.identity(3)
 v_q0_BO = np.array([1.,0.,0.,0.])	#unit quaternion initial condition
 v_w0_BOB = np.array([0.,0.,0.])
 
+sigma_u = 0.01
+sigma_v = 0.01
 GYRO_F_BIAS=np.array([0,0,0])
-GYRO_F_COV=1e-9*np.identity(3)
+GYRO_F_COV=(sigma_u**2)*np.identity(3)
 
 MODEL_STEP=0.1
 CONTROL_STEP = 2.0	#control cycle time period in second

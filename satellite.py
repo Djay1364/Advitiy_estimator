@@ -15,19 +15,37 @@ class Satellite:
 	# units followed
 	# magnetic field is in nanoTesla
 	# position and velocity of satellite in SI units
-	def __init__(self,v_state0,time0):
+	def __init__(self,v_state0,v_glob_est_state0,v_loc_est_state0,time0):
 
 		self.setTime(time0)
-		self.setState(v_state0)		
+		self.setState(v_state0)
+		self.set_glob_est_State(v_glob_est_state0)		
+		self.set_loc_est_State(v_loc_est_state0)        
 
 	def setState(self,v_state1):	#set state
 
 		self.v_state = v_state1.copy()
-
+        
 	def getState(self):	#returns the state
 
-		return self.v_state
+		return self.v_state    
+        
+	def set_glob_est_State(self,v_glob_est_state1):	#set state
 
+		self.v_glob_est_state = v_glob_est_state1.copy()
+
+	def get_glob_est_State(self):	#returns the state
+
+		return self.v_glob_est_state
+
+	def set_loc_est_State(self,v_loc_est_state1):	#set state
+
+		self.v_loc_est_state = v_loc_est_state1.copy()
+
+	def get_loc_est_State(self):	#returns the state
+
+		return self.v_loc_est_state   
+    
 	def setPos(self,v_pos):	#set position in eci (earth centered inertial frame)
 
 		self.v_pos_i = v_pos.copy()
@@ -187,3 +205,19 @@ class Satellite:
 		self.GyroVarBias = v_gyro_bias
 	def getGyroVarBias(self):  #returns bias of gyroscope
 		return self.GyroVarBias
+
+	def setGyroEstBias(self, v_est_bias):  #set bias of gyroscope
+		self.GyroEstBias = v_est_bias
+	def getGyroEstBias(self):  #returns bias of gyroscope
+		return self.GyroEstBias
+
+	def setErrCovariance(self, m_P):  #set bias of gyroscope
+		self.ErrCovariance = m_P
+	def getErrCovariance(self):  #returns bias of gyroscope
+		return self.ErrCovariance
+    
+    
+    
+    
+    
+    
