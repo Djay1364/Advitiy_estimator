@@ -135,30 +135,6 @@ def gyroscope(sat):
 
     return v_w_BIB_m
 
-def gyroscope_bob(sat):
-    
-    v_w_BIB = sat.getW_BI_b()
-    #print("v_w_BIB",v_w_BIB)
-    v_bias_var = sat.getGyroVarBias()
-    v_est_state = sat.get_glob_est_State()
-    v_est_q_BO = v_est_state[0:4]
-    R=qnv.quat2rotm(v_est_q_BO)
-    w_oio = -v_w_IO_o
-    v_w_BOB=v_w_BIB-np.dot(R,w_oio)+v_bias_var
-    
-    return v_w_BOB
-'''
-def gyroVarBias(sat):
-    
-    v_bias_var = sat.getGyroVarBias()
-    sigma_u = 0.001
-    o = np.array([0,0,0])
-    I = np.eye(3)
-    N_u = np.random.multivariate_normal(o,I,3)
-    v_bias_var = v_bias_var + sigma_u*(dt**0.5)*N_u
-    sat.setGyroVarBias()
- '''   
-    
-    
+
     
     

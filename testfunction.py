@@ -9,6 +9,7 @@ from scipy.linalg import expm
 import numpy as np
 import qnv
 import satellite as sat
+from constants_1U import *
 I3=np.array([[1,0,0],[0,1,0],[0,0,1]]) #defining 3x3 identity matrix 
 I4=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) #defining 4x4 identity matrix
 I6=np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]])
@@ -18,7 +19,7 @@ b=np.array([0,0,0])
 b_e=np.array([0,0,0])
 #w_m_k=np.matrix('1,1,1').T
 w_oio=np.array([1,1,1])
-R=I3
+R=10*I3
 #quat=qnv.quat2rotm(np.squeeze(np.asarray(q_kk)))
 
 #q=np.asmatrix(quat)
@@ -72,7 +73,15 @@ def propogate_state_vector(phi,x_kk):
     R=np.dot(phi,x_kk)+h*np.dot()
     return R
 
-def propogate_covariance(phi,P_k):
+def propogate_covariance(phi,P_k,w_est):
+    w = np.linalg.norm(w_est)
+    w_hat = qnv.skew(w_est)
+    Q11 = (sigma_u**2)*h*I3 + (sigma_v**2)*(I3*(h**3/3) + ((w*h)**3/3 + 2*np.sin(w*h) - 2*w*h)*(w_hat**2)/w**5)
+    Q12 = -(sigma_v**2)*(I3*(h**2/3) - (w*h-np.sin(w*h))*w_hat/w**3 + ((w*h)**2/2 + np.cos(w*h) -1)*(w_hat**2)/w**4)
+    Q22 = (sigma_v**2)*h*I3
+    
+    Q_k = np.vstack((np.hstack((Q11,Q12)),np.hstack((Q12.T,Q22))))
+    
     return np.dot(phi,np.dot(P_k,(phi.T)))+Q_k
 
 #v_mag_b_m=sat.getMag_b_m_c()  
@@ -114,7 +123,7 @@ def update_quaternion(delta_x_k1k,q_kk):
     return qnv.quatMultiplyNorm(delta_q,q_kk)
 
 def update_state_vector(K,y,x_k1k,M_m):
-    return x_k1k+np.dot(K,y-np.dot(M_m,x_k1k))
+    return np.dot(K,y-np.dot(M_m,x_k1k))
 
 def update_covariance(I6,K,M_m,P_k1k,R):
     return np.dot(np.dot((I6-np.dot(K,M_m)),P_k1k),(I6-np.dot(K,M_m)).T)+np.dot(np.dot(K,R),K.T)

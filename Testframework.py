@@ -3,6 +3,7 @@
 Created on Thu May  9 16:46:35 2019
 @author: Sanskriti
 """
+
 from constants_1U import *
 import numpy as np
 import satellite
@@ -11,7 +12,7 @@ import testfunction
 import sensor
 import matplotlib.pyplot as plt
 import qnv
-import Q_BO_trajectory
+#import Q_BO_trajectory
 
 control_step=1
 model_step=1
@@ -25,7 +26,7 @@ v_est_w0_BOB = np.array([0.1,0.1,0.1])
 v_est_theta0 = np.array([0,0,0])
 v_est_bias0 = np.array([0.001,0.001,0.001])
 v_state0 = np.hstack((v_q0_BO,v_w0_BOB))
-P_k=np.array([[0.1,0,0,0,0,0],
+P_k=0.01*np.array([[0.1,0,0,0,0,0],
               [0,0.1,0,0,0,0],
               [0,0,0.1,0,0,0],
               [0,0,0,0.1,0,0],
@@ -107,10 +108,9 @@ for i in range(end):
     #print(w_est_bias[i,:])
     #RMSE[i,:]=np.sqrt(((b-f[3:6])**2)/end)
     q_kk=q[i,:]
-    delta_x=[0,0,0,x[i,3:6]]
     P_k=p[i,:]
     w_m_k=sensor.gyroscope(Advitiy)
-    w_gyro[i,:]=testfunction.w_bob_calc(w_m_k,q_kk,-v_w_IO_o,w_est_bias[i,:])#w_m_k
+    w_gyro[i,:]=testfunction.w_bob_calc(w_m_k,q_kk,-v_w_IO_o,np.array([0,0,0]))#w_est_bias[i,:])#w_m_k
     w_est[i,:]=w_gyro[i,:]-w_est_bias[i,:]
     xmod[i]=np.linalg.norm(x[i, :]) 
 
@@ -121,10 +121,9 @@ for i in range(end):
 #plt.plot(l,w_true[:,0], 'r')
 #plt.plot(l,w_est[:,0], 'g')
 #plt.plot(l,gyroVarBias[:,1], 'r')
-#plt.plot(l,w_est[:,0], 'g')
-#plt.plot(l,w_bias[:,2], 'r')
-#plt.plot(l,w_est_bias[:,2], 'y')
+#plt.plot(l,w_bias[:,1], 'y')
+#plt.plot(l,w_est_bias[:,1], 'r')
 
-plt.plot(l,q_true[:,3], 'b')
-plt.plot(l,q[:,3], 'r')
-#plt.plot(l,gyroVarBias[:,2])
+plt.plot(l,q_true[:,1], 'b')
+plt.plot(l,q[:,1], 'r')
+#plt.plot(l,gyroVarBias[:,2])'''

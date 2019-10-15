@@ -42,7 +42,7 @@ delta_q_kk=np.array([0,0,0,1])
 
 #w_m_k=np.matrix('1,1,1').T
 
-R=I3
+R=10*I3
 #quat=qnv.quat2rotm(np.squeeze(np.asarray(q_kk)))
 
 #q=np.asmatrix(quat)
@@ -74,7 +74,7 @@ def estimator(sat):
     
     v_mag_o=sat.getMag_o() #### magnetic field in orbit frame
     v_mag_b_m, v_n_m=sensor.magnetometer(sat) #sat.getMag_b_m_c() 
-    v_mag_b_m=v_mag_b_m/(np.linalg.norm(v_mag_b_m))
+    #v_mag_b_m=v_mag_b_m/(np.linalg.norm(v_mag_b_m))
     w_m_k=sensor.gyroscope(sat) #### angular velocity of body w.r.t. inertial expressed in Body
     w_oio=-v_w_IO_o #### angular velocity of orbit w.r.t. inertial expressed in body
     
@@ -88,7 +88,7 @@ def estimator(sat):
     
     x_k1k=np.dot(phi,x_kk)#testfunction.propogate_state_vector(phi,x_kk) #### local state propagation 
     
-    P_k1k=testfunction.propogate_covariance(phi,P_kk) #### error covariance propagation
+    P_k1k=testfunction.propogate_covariance(phi,P_kk,w_bob) #### error covariance propagation
 
     v_mag_b_e=testfunction.calc_v_mag_b_e(v_mag_b_m,v_mag_o,q_k1k) ####
     
@@ -97,8 +97,8 @@ def estimator(sat):
     M_m=testfunction.calc_M_m(v_mag_b_e,q_k1k) #### No need to pass q_k1k
     
     K=testfunction.calc_K(P_k1k,M_m,R)#np.matrix([[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1]]) 
-    
-    x_k1k1=testfunction.update_state_vector(K,y,x_k1k,M_m)
+
+    x_k1k1=x_k1k+testfunction.update_state_vector(K,y,x_k1k,M_m)
     
     P_k1k1=testfunction.update_covariance(I6,K,M_m,P_k1k,R)
     
@@ -110,7 +110,6 @@ def estimator(sat):
     sat.setErrCovariance(P_k1k1)
     sat.set_glob_est_State(np.hstack((q_k1k1,w_est)))
     sat.setGyroEstBias(b-x_k1k1[3:6])
-    print(x_k1k1[3:6])
     
     return q_k1k1, P_k1k1, x_k1k1
     
